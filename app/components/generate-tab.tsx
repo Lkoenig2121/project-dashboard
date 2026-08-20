@@ -54,8 +54,12 @@ export function GenerateTab() {
           </p>
           {category ? (
             <>
-              <p className="mt-1 text-sm font-medium leading-6">{category.name}</p>
-              <p className="mt-1 text-sm leading-6 text-muted">{category.description}</p>
+              <p className="mt-1 text-sm font-medium leading-6">
+                {category.name}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                {category.description}
+              </p>
               <button
                 type="button"
                 onClick={() => setTab("industries")}
@@ -141,7 +145,7 @@ export function GenerateTab() {
 
         <fieldset>
           <legend className="font-mono text-[11px] uppercase tracking-[0.16em] text-foreground">
-            How many
+            Project ideas to create
           </legend>
           <div className="mt-2 flex gap-1.5">
             {COUNTS.map((value) => (
@@ -184,9 +188,13 @@ export function GenerateTab() {
               : "Generate ideas"}
         </button>
         {technologies.length === 0 ? (
-          <p className="text-xs leading-5 text-muted">Pick at least one technology.</p>
+          <p className="text-xs leading-5 text-muted">
+            Pick at least one technology.
+          </p>
         ) : null}
-        {error ? <p className="text-sm leading-6 text-accent">{error}</p> : null}
+        {error ? (
+          <p className="text-sm leading-6 text-accent">{error}</p>
+        ) : null}
       </aside>
 
       <section className="min-w-0">
