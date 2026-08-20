@@ -14,6 +14,7 @@ export function TrackerTab() {
     toggleDone,
     removeProject,
     openQualities,
+    openPlanning,
     setTab,
   } = useStudio();
   const [filter, setFilter] = useState<FilterId>("all");
@@ -176,6 +177,13 @@ export function TrackerTab() {
                   className="text-sm text-accent underline-offset-4 hover:underline"
                 >
                   Qualities
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openPlanning(project.id)}
+                  className="text-sm text-accent underline-offset-4 hover:underline"
+                >
+                  Plan
                 </button>
                 <button
                   type="button"

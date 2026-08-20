@@ -42,3 +42,32 @@ export type QualitiesRequest = {
   prompt: string;
   images: PromptImage[];
 };
+
+export type PlanPhase = {
+  id: string;
+  name: string;
+  goal: string;
+  deliverables: string[];
+  done: boolean;
+};
+
+export type ProductPlan = {
+  id: string;
+  title: string;
+  brief: string;
+  technologies: string[];
+  categoryId: string | null;
+  categoryName: string | null;
+  markdown: string;
+  phases: PlanPhase[];
+  source: "local" | "llm";
+  createdAt: string;
+};
+
+export type PlanRequest = {
+  title: string;
+  brief: string;
+  technologies: string[];
+  categoryId: string | null;
+  images: PromptImage[];
+};

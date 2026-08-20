@@ -24,6 +24,7 @@ export function IdeaCard({
   onSelect,
   onToggleDone,
   onOpenQualities,
+  onOpenPlan,
   onRemove,
 }: {
   project: ProjectIdea;
@@ -31,6 +32,7 @@ export function IdeaCard({
   onSelect?: () => void;
   onToggleDone: () => void;
   onOpenQualities: () => void;
+  onOpenPlan?: () => void;
   onRemove: () => void;
 }) {
   const done = project.status === "done";
@@ -112,6 +114,15 @@ export function IdeaCard({
         >
           Decode qualities
         </button>
+        {onOpenPlan ? (
+          <button
+            type="button"
+            onClick={onOpenPlan}
+            className="text-sm text-accent underline-offset-4 hover:underline"
+          >
+            Write a plan
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onRemove}

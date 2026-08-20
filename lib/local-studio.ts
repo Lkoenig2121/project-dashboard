@@ -84,7 +84,12 @@ export function describeArchitecture(technologies: string[]) {
   if (hasTech(techs, "tRPC")) extras.push("tRPC for typed procedures");
   if (hasTech(techs, "Auth.js")) extras.push("Auth.js for sessions");
   if (hasTech(techs, "Stripe")) extras.push("Stripe for checkout");
-  if (hasTech(techs, "Docker")) extras.push("Docker for local services");
+  if (hasTech(techs, "Three.js")) extras.push("Three.js for 3D scenes");
+  if (hasTech(techs, "PixiJS")) extras.push("PixiJS for 2D scenes");
+  if (hasTech(techs, "WebGL")) extras.push("WebGL for the render path");
+  if (hasTech(techs, "Canvas 2D")) extras.push("Canvas 2D for the first playable view");
+  if (hasTech(techs, "Electron")) extras.push("Electron as a desktop shell");
+  if (hasTech(techs, "Tauri")) extras.push("Tauri as a desktop shell");
 
   const extraLine =
     extras.length > 0 ? ` Layer in ${extras.join("; ")}.` : "";

@@ -29,6 +29,7 @@ export function GenerateTab() {
     toggleDone,
     removeProject,
     openQualities,
+    openPlanning,
     error,
     categoryId,
     setTab,
@@ -246,6 +247,7 @@ export function GenerateTab() {
                 onSelect={() => selectProject(project.id)}
                 onToggleDone={() => toggleDone(project.id)}
                 onOpenQualities={() => openQualities(project.id)}
+                onOpenPlan={() => openPlanning(project.id)}
                 onRemove={() => removeProject(project.id)}
               />
             ))}

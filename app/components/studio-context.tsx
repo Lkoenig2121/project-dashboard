@@ -12,15 +12,17 @@ import {
 } from "react";
 import { DEFAULT_TECHS } from "@/lib/techs";
 import type { PromptImage } from "@/lib/images";
-import type { Difficulty, ProjectIdea } from "@/lib/types";
+import type { Difficulty, ProductPlan, ProjectIdea } from "@/lib/types";
 
-export type TabId = "industries" | "generate" | "qualities" | "tracker";
+export type TabId = "industries" | "generate" | "qualities" | "planning" | "tracker";
 
 type StudioSnapshot = {
   projects: ProjectIdea[];
   selectedId: string | null;
   technologies: string[];
   categoryId: string | null;
+  plans: ProductPlan[];
+  selectedPlanId: string | null;
 };
 
 const STORAGE_KEY = "project-studio:v2";
@@ -31,6 +33,8 @@ const EMPTY_SNAPSHOT: StudioSnapshot = {
   selectedId: null,
   technologies: DEFAULT_TECHS,
   categoryId: null,
+  plans: [],
+  selectedPlanId: null,
 };
 
 const listeners = new Set<() => void>();
@@ -53,6 +57,7 @@ type StudioContextValue = {
   llmModel: string | null;
   generating: boolean;
   analyzing: boolean;
+  planning: boolean;
   error: string | null;
   generate: (input: {
     count: number;
@@ -61,6 +66,20 @@ type StudioContextValue = {
     images: PromptImage[];
   }) => Promise<void>;
   analyze: (prompt: string, images: PromptImage[]) => Promise<void>;
+  plans: ProductPlan[];
+  selectedPlanId: string | null;
+  selectedPlan: ProductPlan | null;
+  selectPlan: (id: string | null) => void;
+  createPlan: (input: {
+    title: string;
+    brief: string;
+    images: PromptImage[];
+  }) => Promise<void>;
+  togglePlanPhase: (planId: string, phaseId: string) => void;
+  removePlan: (id: string) => void;
+  openPlanning: (projectId?: string) => void;
+  planSeed: { title: string; brief: string } | null;
+  consumePlanSeed: () => void;
   toggleDone: (id: string) => void;
   removeProject: (id: string) => void;
   openQualities: (id: string) => void;
@@ -82,6 +101,33 @@ function normalizeProject(raw: unknown): ProjectIdea | null {
   };
 }
 
+function normalizePlan(raw: unknown): ProductPlan | null {
+  if (!raw || typeof raw !== "object") return null;
+  const plan = raw as Partial<ProductPlan>;
+  if (typeof plan.id !== "string" || typeof plan.title !== "string") return null;
+  if (typeof plan.markdown !== "string" || !Array.isArray(plan.phases)) return null;
+  return {
+    id: plan.id,
+    title: plan.title,
+    brief: typeof plan.brief === "string" ? plan.brief : "",
+    technologies: Array.isArray(plan.technologies)
+      ? plan.technologies.filter((item): item is string => typeof item === "string")
+      : [],
+    categoryId: plan.categoryId ?? null,
+    categoryName: plan.categoryName ?? null,
+    markdown: plan.markdown,
+    phases: plan.phases.map((phase, index) => ({
+      id: typeof phase.id === "string" ? phase.id : `phase-${index + 1}`,
+      name: phase.name,
+      goal: phase.goal,
+      deliverables: Array.isArray(phase.deliverables) ? phase.deliverables : [],
+      done: Boolean(phase.done),
+    })),
+    source: plan.source === "llm" ? "llm" : "local",
+    createdAt: typeof plan.createdAt === "string" ? plan.createdAt : new Date().toISOString(),
+  };
+}
+
 function parseSnapshot(raw: string | null): StudioSnapshot {
   if (!raw) return EMPTY_SNAPSHOT;
   try {
@@ -98,6 +144,11 @@ function parseSnapshot(raw: string | null): StudioSnapshot {
           ? parsed.technologies.filter((item): item is string => typeof item === "string")
           : DEFAULT_TECHS,
       categoryId: typeof parsed.categoryId === "string" ? parsed.categoryId : null,
+      plans: Array.isArray(parsed.plans)
+        ? parsed.plans.map(normalizePlan).filter((item): item is ProductPlan => item !== null)
+        : [],
+      selectedPlanId:
+        typeof parsed.selectedPlanId === "string" ? parsed.selectedPlanId : null,
     };
   } catch {
     return EMPTY_SNAPSHOT;
@@ -133,14 +184,19 @@ function patchSnapshot(patch: Partial<StudioSnapshot>) {
 export function StudioProvider({ children }: { children: ReactNode }) {
   const raw = useSyncExternalStore(subscribe, getStoredRaw, () => "");
   const snapshot = useMemo(() => parseSnapshot(raw), [raw]);
-  const { projects, selectedId, technologies, categoryId } = snapshot;
+  const { projects, selectedId, technologies, categoryId, plans, selectedPlanId } =
+    snapshot;
 
   const [tab, setTabState] = useState<TabId>("industries");
   const [llmEnabled, setLlmEnabled] = useState(false);
   const [llmModel, setLlmModel] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [planning, setPlanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [planSeed, setPlanSeed] = useState<{ title: string; brief: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     fetch("/api/status")
@@ -157,6 +213,11 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const selected = useMemo(
     () => projects.find((project) => project.id === selectedId) ?? null,
     [projects, selectedId],
+  );
+
+  const selectedPlan = useMemo(
+    () => plans.find((plan) => plan.id === selectedPlanId) ?? null,
+    [plans, selectedPlanId],
   );
 
   const setTab = useCallback((next: TabId) => {
@@ -314,6 +375,99 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     [setTab],
   );
 
+  const selectPlan = useCallback((id: string | null) => {
+    patchSnapshot({ selectedPlanId: id });
+  }, []);
+
+  const openPlanning = useCallback(
+    (projectId?: string) => {
+      if (projectId) {
+        const current = parseSnapshot(getStoredRaw());
+        const project = current.projects.find((item) => item.id === projectId);
+        patchSnapshot({ selectedId: projectId });
+        if (project) {
+          setPlanSeed({
+            title: project.title,
+            brief: [project.summary, `MVP: ${project.mvpScope}`, project.architecture]
+              .filter(Boolean)
+              .join("\n\n"),
+          });
+        }
+      }
+      setError(null);
+      setTab("planning");
+    },
+    [setTab],
+  );
+
+  const consumePlanSeed = useCallback(() => {
+    setPlanSeed(null);
+  }, []);
+
+  const createPlan = useCallback(
+    async (input: { title: string; brief: string; images: PromptImage[] }) => {
+      setPlanning(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: input.title,
+            brief: input.brief,
+            images: input.images,
+            technologies,
+            categoryId,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        const data = (await response.json()) as { plan?: ProductPlan };
+        if (!data.plan) {
+          throw new Error("No plan returned");
+        }
+        const current = parseSnapshot(getStoredRaw());
+        writeSnapshot({
+          ...current,
+          plans: [data.plan, ...current.plans],
+          selectedPlanId: data.plan.id,
+        });
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : "Could not write a plan");
+      } finally {
+        setPlanning(false);
+      }
+    },
+    [technologies, categoryId],
+  );
+
+  const togglePlanPhase = useCallback((planId: string, phaseId: string) => {
+    const current = parseSnapshot(getStoredRaw());
+    writeSnapshot({
+      ...current,
+      plans: current.plans.map((plan) =>
+        plan.id === planId
+          ? {
+              ...plan,
+              phases: plan.phases.map((phase) =>
+                phase.id === phaseId ? { ...phase, done: !phase.done } : phase,
+              ),
+            }
+          : plan,
+      ),
+    });
+  }, []);
+
+  const removePlan = useCallback((id: string) => {
+    const current = parseSnapshot(getStoredRaw());
+    writeSnapshot({
+      ...current,
+      plans: current.plans.filter((plan) => plan.id !== id),
+      selectedPlanId: current.selectedPlanId === id ? null : current.selectedPlanId,
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       ready: true,
@@ -333,9 +487,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       llmModel,
       generating,
       analyzing,
+      planning,
       error,
       generate,
       analyze,
+      plans,
+      selectedPlanId,
+      selectedPlan,
+      selectPlan,
+      createPlan,
+      togglePlanPhase,
+      removePlan,
+      openPlanning,
+      planSeed,
+      consumePlanSeed,
       toggleDone,
       removeProject,
       openQualities,
@@ -357,9 +522,20 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       llmModel,
       generating,
       analyzing,
+      planning,
       error,
       generate,
       analyze,
+      plans,
+      selectedPlanId,
+      selectedPlan,
+      selectPlan,
+      createPlan,
+      togglePlanPhase,
+      removePlan,
+      openPlanning,
+      planSeed,
+      consumePlanSeed,
       toggleDone,
       removeProject,
       openQualities,

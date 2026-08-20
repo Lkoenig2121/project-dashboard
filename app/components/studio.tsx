@@ -2,6 +2,7 @@
 
 import { GenerateTab } from "./generate-tab";
 import { IndustriesTab } from "./industries-tab";
+import { PlanningTab } from "./planning-tab";
 import { QualitiesTab } from "./qualities-tab";
 import { StudioProvider, useStudio, type TabId } from "./studio-context";
 import { TrackerTab } from "./tracker-tab";
@@ -10,6 +11,7 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
   { id: "industries", label: "Industries", hint: "100 verticals" },
   { id: "generate", label: "Generate", hint: "Stack + ideas" },
   { id: "qualities", label: "Qualities", hint: "Prompt a brief" },
+  { id: "planning", label: "Planning", hint: "Large products" },
   { id: "tracker", label: "Tracker", hint: "Check off done" },
 ];
 
@@ -28,7 +30,7 @@ function StudioShell() {
             Ideas you can actually start
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
-            Pick an industry, choose a stack, generate in-depth application ideas, decode their qualities, then check a project off when the MVP is done.
+            Pick an industry, generate ideas, decode qualities, write a phased plan for huge products, then check work off when it ships.
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
@@ -83,6 +85,7 @@ function StudioShell() {
         {tab === "industries" ? <IndustriesTab /> : null}
         {tab === "generate" ? <GenerateTab /> : null}
         {tab === "qualities" ? <QualitiesTab /> : null}
+        {tab === "planning" ? <PlanningTab /> : null}
         {tab === "tracker" ? <TrackerTab /> : null}
       </div>
     </div>

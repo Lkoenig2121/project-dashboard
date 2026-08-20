@@ -28,6 +28,10 @@ export const TECH_GROUPS: TechGroup[] = [
     label: "Product extras",
     items: ["Auth.js", "Stripe", "Docker", "tRPC", "WebSockets"],
   },
+  {
+    label: "Client runtime",
+    items: ["Canvas 2D", "WebGL", "Three.js", "PixiJS", "Electron", "Tauri"],
+  },
 ];
 
 export const DEFAULT_TECHS = [
